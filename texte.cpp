@@ -1,27 +1,29 @@
 #include    <pthread.h>
 #include    <semaphore.h>
 #include    <stdlib.h>
-#include    <stdio.h>
 #include    <unistd.h>
+#include    <iostream>
+#include    <list>
 
-
-#define    N 2
 #define    TRUE 1
+#define    N 2
 
-int    buffer[N], in = 0, out = 0;
+using namespace std;
+
+list<int> listaCompartilhada;
+
 sem_t  vazio, cheio, mutexC, mutexP;
 
 void *produtor(void *arg) {
 
    while(TRUE) {
-      sleep(rand()%5);
+       sleep(rand()%5);
 
        sem_wait(&vazio);
        sem_wait(&mutexP);
-       
-      buffer[in] = rand() % 100;
-      printf("Produzindo buffer[%d] = %d\n", in, buffer[in]);
-      in= (in+1) % N;
+       int producao = rand() % 100;
+       cout << "produzindo:" << producao << endl;
+       listaCompartilhada.push_back(producao);
 
        sem_post(&mutexP);
        sem_post(&cheio);
@@ -37,12 +39,15 @@ void *consumidor(void *arg) {
        sem_wait(&cheio);
        sem_wait(&mutexC);
        
-       printf("Consumindo buffer[%d] = %d\n", out, buffer[out]);
-       out = (out+1) % N;
-       
+       if (!listaCompartilhada.empty()) {
+           cout << "consumindo: ";
+           cout << listaCompartilhada.front() << endl;
+           listaCompartilhada.pop_front();
+       } else {
+           cout << "não rolou consumir" << endl;
+       }
        sem_post(&mutexC);
        sem_post(&vazio);
-       
    }
 }
 
