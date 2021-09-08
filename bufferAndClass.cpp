@@ -4,7 +4,7 @@
 #include    <stdio.h>
 #include    <unistd.h>
 #include <iostream>
-
+#include <list>
 #define    N 2
 #define    TRUE 1
 
@@ -18,36 +18,33 @@ class MySecondClass {
         static void *producer(void *arg);
         static void *consumer(void *arg);
     int in, out;
-    pthread_t tid[2];
-    sem_t  empty, full, mutexC, mutexP;
-    int buffer[2];
+    pthread_t tid[3];
+    sem_t  hasItems, freeCritialSession;
+    list<int> sharedList;
 };
 
 
 MySecondClass::MySecondClass() {
     
 }
+
 MySecondClass::MySecondClass(int in, int out) {
     this->in = in;
     this->out = out;
 
+    sem_init(&(this->freeCritialSession), 0, 1);
+    sem_init(&(this->hasItems), 0, 0);
 
-    sem_init(&(this->mutexC), 0, 1);
-    sem_init(&(this->mutexP), 0, 1);
-    sem_init(&(this->empty), 0, N);
-    sem_init(&(this->full), 0, 0);
-    
     MySecondClass *args = (MySecondClass *) malloc(sizeof(MySecondClass *));
     args = this;
     
     pthread_create(&(this->tid[0]), NULL, producer, (void *) args);
     pthread_create(&(this->tid[1]), NULL, consumer, (void *) args);
-    
-    cout << "alo" << endl;
+    pthread_create(&(this->tid[2]), NULL, producer, (void *) args);
+
     
     pthread_exit(0);
 }
-
 
 void * MySecondClass::producer(void *arg) {
     
@@ -58,18 +55,13 @@ void * MySecondClass::producer(void *arg) {
    while(TRUE) {
        sleep(rand()%5);
 
-       cout << "alo2" << endl;
-       sem_wait(&((*_this).empty));
-       cout << "alo3" << endl;
-       sem_wait(&((*_this).mutexP));
-       cout << "alo4" << endl;
-    
-       _this->buffer[_this->in] = rand() % 100;
-       printf("Producing buffer[%d] = %d\n", _this->in, _this->buffer[_this->in]);
-       _this->in= (_this->in +1) % N;
+       sem_wait(&((*_this).freeCritialSession));
+       int prod = rand() % 100;
+       cout << "producing: " << prod << endl;
+       _this->sharedList.push_back(prod);
 
-       sem_post(&(_this->mutexP));
-       sem_post(&(_this->full));
+       sem_post(&(_this->freeCritialSession));
+       sem_post(&(_this->hasItems));
        
    }
 }
@@ -80,19 +72,20 @@ void *MySecondClass::consumer(void *arg) {
     MySecondClass *_this = (MySecondClass *) arg;
 
    while(TRUE) {
-       
-       cout << "alo2 cons" << endl;
+
        sleep(rand()%5);
-       sem_wait(&((*_this).full));
-       cout << "alo3 cons" << endl;
-       sem_wait(&((*_this).mutexC));
-       cout << "alo4 cons" << endl;
+       sem_wait(&((*_this).hasItems));
+       sem_wait(&((*_this).freeCritialSession));
        
-       printf("Consuming buffer[%d] = %d\n", _this->out, _this->buffer[_this->out]);
-       _this->out = (_this->out+1) % N;
+       if (!_this->sharedList.empty()) { // this shouldn't be needed, but better safe than sorry
+           cout << "consuming: ";
+           cout << _this->sharedList.front() << endl;
+           _this->sharedList.pop_front();
+       } else {
+           cout << "not possible to consume" << endl;
+       }
        
-       sem_post(&(_this->mutexC));
-       sem_post(&(_this->empty));
+       sem_post(&(_this->freeCritialSession));
        
    }
 }
