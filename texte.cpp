@@ -10,57 +10,57 @@
 
 using namespace std;
 
-list<int> listaCompartilhada;
+list<int> sharedList;
 
-sem_t  vazio, cheio, mutexC, mutexP;
+sem_t hasItems;
+sem_t busy;
 
-void *produtor(void *arg) {
+void *producer(void *arg) {
 
    while(TRUE) {
+       
        sleep(rand()%5);
 
-       sem_wait(&vazio);
-       sem_wait(&mutexP);
-       int producao = rand() % 100;
-       cout << "produzindo:" << producao << endl;
-       listaCompartilhada.push_back(producao);
-
-       sem_post(&mutexP);
-       sem_post(&cheio);
+       sem_wait(&busy);
+       int prod = rand() % 100;
+       cout << "producing: " << prod << endl;
+       sharedList.push_back(prod);
+       sem_post(&hasItems);
+       sem_post(&busy);
+       
        
    }
 }
 
-void *consumidor(void *arg) {
+void *consumer(void *arg) {
 
    while(TRUE) {
-      sleep(rand()%5);
+      
+       sleep(rand()%5);
 
-       sem_wait(&cheio);
-       sem_wait(&mutexC);
+       sem_wait(&hasItems);
+       sem_wait(&busy);
        
-       if (!listaCompartilhada.empty()) {
-           cout << "consumindo: ";
-           cout << listaCompartilhada.front() << endl;
-           listaCompartilhada.pop_front();
+       if (!sharedList.empty()) {
+           cout << "consuming: ";
+           cout << sharedList.front() << endl;
+           sharedList.pop_front();
        } else {
-           cout << "não rolou consumir" << endl;
+           cout << "not possible to consume" << endl;
        }
-       sem_post(&mutexC);
-       sem_post(&vazio);
+       sem_post(&busy);
    }
 }
 
 int main(int argc, char *argv[ ]) {
     pthread_t cons, prod;
 
-    sem_init(&mutexC, 0, 1);
-    sem_init(&mutexP, 0, 1);
-    sem_init(&vazio, 0, N);
-    sem_init(&cheio, 0, 0);
-    
-    pthread_create(&prod, NULL, produtor, NULL);
-    pthread_create(&cons, NULL, consumidor, NULL);
+    sem_init(&busy, 0, 0);
+    sem_init(&hasItems, 0, 0);
+   
+    pthread_create(&cons, NULL, consumer, NULL);
+    pthread_create(&prod, NULL, producer, NULL);
+   
     
     pthread_exit(0);
 }
