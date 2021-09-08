@@ -13,7 +13,6 @@ using namespace std;
 int main(int argc, char *argv[ ]) {
     
     ProfSessionManagerSimulator *myClass = new ProfSessionManagerSimulator();
-    cout << "SOCOOOORRROOOO" << endl;
     NotificationManagerSimulator *notificationManager = new NotificationManagerSimulator(myClass);
     notificationManager->newNotificationSentByUser(2);
 

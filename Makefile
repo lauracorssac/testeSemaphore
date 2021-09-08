@@ -5,7 +5,7 @@ main:
 
 original:
 	g++ -std=c++11 -c original.cpp
-	g++ -o original original.o
+	g++ -o original original.o -lpthread
 	./original
 
 bufferAndClass:
