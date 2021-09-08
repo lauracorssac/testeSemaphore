@@ -9,6 +9,6 @@ original:
 	./original
 
 bufferAndClass:
-	g++ -std=c++11 -c bufferAndClass.cpp
-	g++ -o bufferAndClass bufferAndClass.o  -lpthread
+	g++ -std=c++11 -c bufferAndClass.cpp NotificationManagerSimulator.cpp ProfSessionManagerSimulator.cpp
+	g++ -o bufferAndClass bufferAndClass.o NotificationManagerSimulator.o ProfSessionManagerSimulator.o -lpthread
 	./bufferAndClass
